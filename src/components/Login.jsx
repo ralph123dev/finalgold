@@ -201,7 +201,7 @@ const Login = ({ setUser }) => {
                 >
                   terms and conditions
                 </button>
-                {' '}of Goldin
+                {' '}of Goldin.
               </label>
             </div>
 
