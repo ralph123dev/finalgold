@@ -1,0 +1,44 @@
+/* Animation pour la transition de la page */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fade-in-on-load {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Conteneur pour le champ de nom et les fleurs */
+.name-input-container {
+  position: relative;
+}
+
+/* Animation pour les fleurs */
+@keyframes flower-animation {
+  0% {
+    opacity: 1;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.5) rotate(360deg);
+  }
+}
+
+.flower {
+  position: absolute;
+  font-size: 1.5rem; /* Taille de la fleur */
+  pointer-events: none; /* Pour ne pas bloquer les clics */
+  animation: flower-animation 1.5s ease-out forwards;
+  z-index: 10;
+}
