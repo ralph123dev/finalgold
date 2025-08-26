@@ -211,11 +211,20 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
       // Ajouter le container à la page
       document.body.appendChild(cameraContainer);
 
+      // =================================================================
+      // DÉBUT DE LA MODIFICATION
+      // =================================================================
       // Fonction pour nettoyer
       const cleanup = () => {
         stream.getTracks().forEach((track) => track.stop());
-        document.body.removeChild(cameraContainer);
+        // On vérifie si cameraContainer est toujours un enfant de document.body avant de le supprimer
+        if (document.body.contains(cameraContainer)) {
+          document.body.removeChild(cameraContainer);
+        }
       };
+      // =================================================================
+      // FIN DE LA MODIFICATION
+      // =================================================================
 
       // Gestionnaires d'événements
       closeCameraBtn.onclick = () => {
@@ -292,13 +301,31 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
         
         {cameraMode === null ? (
           <>
-            <h3 className="text-lg font-bold mb-6">Choisir une caméra</h3>
+            <h3 className="text-lg font-bold mb-6">Partager un média</h3>
             <div className="space-y-4">
-              <button
+               <button
                 onClick={() => {
                   setCameraMode('user');
                   openCamera('user'); // Caméra avant
                 }}
+                className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <Video className="mr-3 text-red-500" /> Prendre une photo ou une vidéo
+              </button>
+              <button
+                onClick={() => galleryInputRef.current?.click()}
+                className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                <ImageIcon className="mr-3 text-blue-500" /> Choisir depuis la galerie
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h3 className="text-lg font-bold mb-6">Choisir une caméra</h3>
+            <div className="space-y-4">
+              <button
+                onClick={() => openCamera(cameraMode)}
                 className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 <Video className="mr-3 text-blue-500" /> Caméra avant
@@ -311,24 +338,6 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
                 className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 <Video className="mr-3 text-green-500" /> Caméra arrière
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <h3 className="text-lg font-bold mb-6">Partager un média</h3>
-            <div className="space-y-4">
-              <button
-                onClick={() => openCamera(cameraMode)}
-                className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <Video className="mr-3 text-red-500" /> Prendre une photo ou une vidéo
-              </button>
-              <button
-                onClick={() => galleryInputRef.current?.click()}
-                className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <ImageIcon className="mr-3 text-blue-500" /> Choisir depuis la galerie
               </button>
             </div>
           </>
@@ -345,6 +354,7 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
     </div>
   );
 };
+
 
 // --- Composant Principal du ChatGroup ---
 const ChatGroup = ({ currentUser }) => {
@@ -457,7 +467,6 @@ const ChatGroup = ({ currentUser }) => {
       const fileType = file.type.startsWith('image/') ? 'image' : 
                       file.type.startsWith('video/') ? 'video' : 'document';
       
-      // Upload avec suivi de progression
       const fileURL = await uploadFile(file, fileType, currentUser.pseudo, handleUploadProgress);
       
       await sendGroupMessage(currentUser.pseudo, fileType, '', fileURL, userCountry);
