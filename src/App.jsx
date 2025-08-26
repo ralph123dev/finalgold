@@ -4,6 +4,7 @@ import Login from './components/Login';
 import Channel from './components/Channel';
 import ChatGroup from './components/ChatGroup';
 import Verify from './components/Verify';
+import Admin from './components/Admin';
 import { purgeAllAppData } from './utils/firebaseUtils';
 
 function App() {
@@ -32,19 +33,29 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
-    // Supprimer les données utilisateur stockées si nécessaire
+    setActiveTab('channel');
     if (window.goldConnectUser) {
       delete window.goldConnectUser;
     }
+    localStorage.removeItem('goldin:user');
   };
 
+  // Si l'utilisateur n'est pas connecté
+  if (!user) {
+    return <Login setUser={setUser} />;
+  }
+
+  // Si c'est l'administrateur
+  if (user.isAdmin) {
+    return <Admin onLogout={handleLogout} />;
+  }
+
+  // Interface utilisateur normale
   const tabs = [
     { id: 'channel', name: 'Channel', icon: Users },
     { id: 'chat', name: 'Chat', icon: MessageCircle },
     { id: 'verify', name: 'Verify', icon: Shield },
   ];
-
-  if (!user) return <Login setUser={setUser} />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 to-yellow-100">

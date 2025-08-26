@@ -1,5 +1,3 @@
-// src/components/Login.jsx
-
 import { useState } from 'react';
 import { LogIn, X } from 'lucide-react';
 import { createUserIfNeeded } from '../utils/firebaseUtils';
@@ -7,12 +5,12 @@ import { getUserCountryInfo } from '../utils/countryUtils';
 import './Login.css';
 
 const TermsModal = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+  <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col animate-fade-in-up">
       <div className="flex justify-between items-center p-5 border-b border-gray-200">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800">Terms and Conditions</h2>
-        <button
-          onClick={onClose}
+        <button 
+          onClick={onClose} 
           className="text-gray-400 hover:text-gray-600 p-1 rounded-full transition-colors"
           aria-label="Fermer la fenêtre modale"
         >
@@ -21,7 +19,6 @@ const TermsModal = ({ onClose }) => (
       </div>
 
       <div className="p-4 md:p-6 overflow-y-auto space-y-4">
-        {/* ... Le contenu des termes et conditions reste identique ... */}
         <h3 className="font-semibold text-gray-700 text-base md:text-lg">1. Acceptance of Terms</h3>
         <p className="text-gray-600 text-xs md:text-sm">
           By accessing and using Gold Connect (the "Service"), you agree to be bound by these Terms and Conditions. If you do not agree with any part of the terms, you may not access the Service.
@@ -127,26 +124,25 @@ const Login = ({ setUser }) => {
     setError('');
 
     try {
-      // 1. Récupérer les informations de pays grâce à notre nouvel utilitaire fiable
+      // Récupérer les informations de pays de l'utilisateur
       const countryInfo = await getUserCountryInfo();
+       if (pseudo.trim() === 'admin1234') {
+      setUser({
+        pseudo: 'admin1234',
+        isAdmin: true,
+        countryCode: 'ADMIN',
+        country: 'Administration'
+      });
+      return;
+    }
       
-      // 2. Créer l'utilisateur dans Firestore avec les informations de pays
-      // La fonction createUserIfNeeded doit être capable de recevoir cet objet
+      // Créer l'utilisateur avec les informations de pays
       await createUserIfNeeded(pseudo, countryInfo);
-      
-      // =================================================================
-      // DÉBUT DE LA MODIFICATION
-      // =================================================================
-      // 3. Mettre à jour l'état local de l'utilisateur avec les bons noms de variables
       setUser({ 
-        pseudo: pseudo, 
-        countryCode: countryInfo.countryCode, // CORRIGÉ : Utilisation de countryCode (camelCase)
+        pseudo, 
+        countryCode: countryInfo.country_code,
         country: countryInfo.country 
       });
-      // =================================================================
-      // FIN DE LA MODIFICATION
-      // =================================================================
-
     } catch (error) {
       console.error('Erreur de connexion:', error);
       setError('Erreur lors de la connexion');
@@ -158,7 +154,7 @@ const Login = ({ setUser }) => {
   return (
     <>
       <div
-        className={`min-h-screen flex items-center justify-center p-4 ${isTermsModalOpen ? 'blur-sm' : ''}`}
+        className="min-h-screen flex items-center justify-center p-4"
         style={{
           backgroundImage: 'url(/accueil.png)',
           backgroundSize: 'cover',
@@ -169,7 +165,7 @@ const Login = ({ setUser }) => {
           <div className="text-center mb-6 md:mb-8">
             <div className="flex items-center justify-center mb-4">
               <img src="/logo.png" alt="Logo" className="h-10 md:h-12 mr-2" />
-              <h1 className="text-2xl md:text-3xl font-bold text-yellow-600">Gold Connect</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-yellow-600">Goldin</h1>
             </div>
             <p className="text-gray-600 text-sm md:text-base">Sign in to your golden network</p>
           </div>
@@ -214,7 +210,7 @@ const Login = ({ setUser }) => {
                 >
                   terms and conditions
                 </button>
-                {' '}of Goldin.
+                {' '}of Goldin
               </label>
             </div>
 

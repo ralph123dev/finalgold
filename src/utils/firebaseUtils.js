@@ -538,3 +538,101 @@ export const getUserInfo = async (pseudo) => {
   const userSnap = await getDoc(userRef);
   return userSnap.exists() ? userSnap.data() : null;
 };
+// ===== FONCTIONS POUR L'ADMINISTRATION DES MESSAGES =====
+
+// Écouter tous les messages
+export const subscribeToMessages = (callback) => {
+  try {
+    const q = query(collection(db, 'groupMessages'), orderBy('createdAt', 'desc'));
+    return onSnapshot(q, (snapshot) => {
+      const messages = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        messages.push({
+          id: doc.id,
+          userName: data.from,
+          content: data.text,
+          country: data.country || '',
+          timestamp: data.createdAt?.toDate() || new Date(),
+          mediaUrl: data.mediaUrl || null,
+          type: data.type || 'text'
+        });
+      });
+      callback(messages);
+    }, (error) => {
+      console.error('Erreur dans l\'écoute des messages:', error);
+      callback([]);
+    });
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation de l\'écoute:', error);
+    return () => {};
+  }
+};
+// Supprimer un message
+export const deleteMessage = async (messageId) => {
+  try {
+    if (!messageId) {
+      throw new Error('ID du message manquant');
+    }
+
+    const messageRef = doc(db, 'groupMessages', messageId);
+    const messageSnap = await getDoc(messageRef);
+
+    if (!messageSnap.exists()) {
+      throw new Error('Message non trouvé');
+    }
+
+    const messageData = messageSnap.data();
+
+    // Si le message contient un média, le supprimer aussi
+    if (messageData.mediaUrl) {
+      // Si vous utilisez Cloudinary, vous devrez implémenter la suppression via l'API Cloudinary
+      // Pour Firebase Storage:
+      if (messageData.mediaInfo && messageData.mediaInfo.publicId) {
+        const storageRef = ref(storage, messageData.mediaInfo.publicId);
+        try {
+          await deleteObject(storageRef);
+        } catch (storageError) {
+          console.error('Erreur lors de la suppression du média:', storageError);
+        }
+      }
+    }
+
+    await deleteDoc(messageRef);
+    console.log('Message supprimé avec succès');
+  } catch (error) {
+    console.error('Erreur lors de la suppression du message:', error);
+    throw error;
+  }
+};
+
+// Récupérer les statistiques des messages
+export const getMessageStats = async () => {
+  try {
+    const messagesRef = collection(db, 'groupMessages');
+    const snapshot = await getDocs(messagesRef);
+    
+    const stats = {
+      totalMessages: snapshot.size,
+      messagesByType: {},
+      messagesByCountry: {}
+    };
+
+    snapshot.forEach((doc) => {
+      const data = doc.data();
+      
+      // Compter par type
+      const type = data.type || 'text';
+      stats.messagesByType[type] = (stats.messagesByType[type] || 0) + 1;
+      
+      // Compter par pays
+      const country = data.country || 'Inconnu';
+      stats.messagesByCountry[country] = (stats.messagesByCountry[country] || 0) + 1;
+    });
+
+    return stats;
+  } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques:', error);
+    throw error;
+  }
+};
