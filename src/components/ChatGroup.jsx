@@ -312,12 +312,6 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
               >
                 <Video className="mr-3 text-red-500" /> Prendre une photo ou une vidéo
               </button>
-              <button
-                onClick={() => galleryInputRef.current?.click()}
-                className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <ImageIcon className="mr-3 text-blue-500" /> Choisir depuis la galerie
-              </button>
             </div>
           </>
         ) : (

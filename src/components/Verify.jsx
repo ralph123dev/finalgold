@@ -1,9 +1,10 @@
+// src/components/Verify.jsx
+
 import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Trash2, X } from 'lucide-react';
 import {
   collection,
   addDoc,
-  getDocs,
   deleteDoc,
   doc,
   serverTimestamp,
@@ -12,6 +13,9 @@ import {
   onSnapshot
 } from 'firebase/firestore';
 import { db } from '../firebase';
+
+import { countryList } from '../utils/countries';
+import { getUserCountryInfo } from '../utils/countryUtils';
 
 const Verify = () => {
   const [verifyDataList, setVerifyDataList] = useState([]);
@@ -22,9 +26,9 @@ const Verify = () => {
     country: '',
     phoneNumber: ''
   });
+  const [isDetectingCountry, setIsDetectingCountry] = useState(false);
 
   useEffect(() => {
-    // Écoute en temps réel des données
     const q = query(collection(db, 'verifyData'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const data = [];
@@ -32,41 +36,63 @@ const Verify = () => {
         data.push({ id: doc.id, ...doc.data() });
       });
       setVerifyDataList(data);
-      
-      // Ouvrir le popup si aucune donnée n'existe
       if (data.length === 0) {
         setShowPopup(true);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const detectCountry = async () => {
+      if (formData.country) return;
+
+      setIsDetectingCountry(true);
+      try {
+        const userInfo = await getUserCountryInfo();
+        
+        // =================================================================
+        // DÉBUT DE LA MODIFICATION
+        // =================================================================
+        // On met à jour le formulaire SEULEMENT si la détection a réussi
+        // et n'a pas retourné le code d'erreur 'XX'.
+        if (userInfo && userInfo.countryCode !== 'XX') {
+          setFormData(prevData => ({ ...prevData, country: userInfo.country }));
+        }
+        // =================================================================
+        // FIN DE LA MODIFICATION
+        // =================================================================
+
+      } catch (error) {
+        console.error("La détection du pays a échoué :", error);
+      } finally {
+        setIsDetectingCountry(false);
+      }
+    };
+
+    if (showPopup) {
+      detectCountry();
+    }
+  }, [showPopup]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (!formData.name.trim() || !formData.country.trim() || !formData.phoneNumber.trim()) {
       alert('Tous les champs sont requis');
       return;
     }
-
     setLoading(true);
-    
     try {
       const verifyRef = collection(db, 'verifyData');
-      const docData = {
+      await addDoc(verifyRef, {
         name: formData.name.trim(),
         country: formData.country.trim(),
         phoneNumber: formData.phoneNumber.trim(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      };
-      
-      await addDoc(verifyRef, docData);
-      
+      });
       setFormData({ name: '', country: '', phoneNumber: '' });
       setShowPopup(false);
-      
     } catch (error) {
       console.error('Erreur lors de l\'ajout:', error);
       alert('Erreur lors de l\'ajout. Veuillez réessayer.');
@@ -88,6 +114,7 @@ const Verify = () => {
 
   return (
     <div className="p-4">
+      {/* ... Le reste du JSX reste identique ... */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
           <Shield className="text-yellow-600 mr-2" size={24} />
@@ -138,7 +165,6 @@ const Verify = () => {
         </div>
       )}
 
-      {/* Popup Modal */}
       {showPopup && (
         <div className="fixed inset-0 flex items-center justify-center p-4 z-50 backdrop-blur-sm bg-black/30">
           <div 
@@ -158,7 +184,6 @@ const Verify = () => {
                 <X size={24} />
               </button>
             </div>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -178,14 +203,25 @@ const Verify = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Pays
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.country}
                   onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all"
-                  placeholder="Votre pays"
-                  disabled={loading}
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 transition-all bg-white"
+                  disabled={loading || isDetectingCountry}
+                >
+                  {isDetectingCountry ? (
+                    <option value="">Détection de votre pays...</option>
+                  ) : (
+                    <>
+                      <option value="">Sélectionnez un pays</option>
+                      {countryList.map((country) => (
+                        <option key={country.code} value={country.name}>
+                          {country.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
+                </select>
               </div>
 
               <div>
@@ -201,7 +237,6 @@ const Verify = () => {
                   disabled={loading}
                 />
               </div>
-
               <div className="flex space-x-3 pt-4">
                 <button
                   type="button"

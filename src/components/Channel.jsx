@@ -136,13 +136,11 @@ const UploadProgress = ({ progress, fileName }) => (
 // Composant pour la Popup de sélection de Média avec ouverture caméra native
 const MediaPickerModal = ({ onClose, onFileSelect }) => {
   const galleryInputRef = useRef(null);
-  const [cameraMode, setCameraMode] = useState(null);
-  const cameraContainerRef = useRef(null); // Ajout d'une ref pour le conteneur
 
-  const openCamera = async (facingMode) => {
+  const openCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode },
+        video: true,
         audio: true,
       });
 
@@ -153,7 +151,6 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
 
       // Créer une interface pour prendre une photo ou vidéo
       const cameraContainer = document.createElement('div');
-      cameraContainerRef.current = cameraContainer; // Stocker la référence
       cameraContainer.style.position = 'fixed';
       cameraContainer.style.top = '0';
       cameraContainer.style.left = '0';
@@ -222,13 +219,8 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
 
       // Fonction pour nettoyer
       const cleanup = () => {
-        if (stream) {
-          stream.getTracks().forEach((track) => track.stop());
-        }
-        if (cameraContainerRef.current && document.body.contains(cameraContainerRef.current)) {
-          document.body.removeChild(cameraContainerRef.current);
-        }
-        cameraContainerRef.current = null;
+        stream.getTracks().forEach((track) => track.stop());
+        document.body.removeChild(cameraContainer);
       };
 
       // Gestionnaires d'événements
@@ -262,10 +254,12 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
 
       recordVideoBtn.onclick = () => {
         if (mediaRecorder && mediaRecorder.state === 'recording') {
+          // Arrêter l'enregistrement
           mediaRecorder.stop();
           recordVideoBtn.innerHTML = '●';
           recordVideoBtn.style.background = 'red';
         } else {
+          // Commencer l'enregistrement
           recordedChunks = [];
           mediaRecorder = new MediaRecorder(stream);
           mediaRecorder.ondataavailable = (e) => {
@@ -277,7 +271,7 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
             const blob = new Blob(recordedChunks, { type: 'video/webm' });
             const file = new File([blob], 'video.webm', { type: 'video/webm' });
             onFileSelect(file);
-            cleanup(); // Appel sécurisé de cleanup
+            cleanup();
             onClose();
           };
           mediaRecorder.start();
@@ -288,80 +282,69 @@ const MediaPickerModal = ({ onClose, onFileSelect }) => {
     } catch (error) {
       console.error('Erreur accès caméra:', error);
       alert('Impossible d accéder à la caméra. Vérifiez les permissions.');
-      setCameraMode(null);
+    }
+  };
+
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.type.startsWith('video/')) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = () => {
+        window.URL.revokeObjectURL(video.src);
+        if (video.duration > 180) {
+          alert('La vidéo ne doit pas dépasser 3 minutes.');
+          if (event.target) event.target.value = '';
+        } else {
+          onFileSelect(file);
+        }
+      };
+      video.src = URL.createObjectURL(file);
+    } else {
+      onFileSelect(file);
     }
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-      {cameraMode === null ? (
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center relative animate-fade-in-up">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center relative animate-fade-in-up">
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full"
+          aria-label="Fermer la fenêtre modale"
+        >
+          <X size={24} />
+        </button>
+        <h3 className="text-lg font-bold mb-6">Partager un média</h3>
+        <div className="space-y-4">
           <button
-            onClick={onClose}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full"
-            aria-label="Fermer la fenêtre modale"
+            onClick={openCamera}
+            className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            type="button"
           >
-            <X size={24} />
+            <Video className="mr-3 text-red-500" /> Prendre une photo ou une
+            vidéo
           </button>
-          <h3 className="text-lg font-bold mb-6">Choisir une caméra</h3>
-          <div className="space-y-4">
-            <button
-              onClick={() => {
-                setCameraMode('user');
-                openCamera('user'); // Caméra avant
-              }}
-              className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              type="button"
-            >
-              <Video className="mr-3 text-blue-500" /> Caméra avant
-            </button>
-            <button
-              onClick={() => {
-                setCameraMode('environment');
-                openCamera('environment'); // Caméra arrière
-              }}
-              className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              type="button"
-            >
-              <Video className="mr-3 text-green-500" /> Caméra arrière
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center relative animate-fade-in-up">
           <button
-            onClick={() => setCameraMode(null)}
-            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded-full"
-            aria-label="Retour"
+            onClick={() => galleryInputRef.current?.click()}
+            className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            type="button"
           >
-            <X size={24} />
+            <ImageIcon className="mr-3 text-blue-500" /> Choisir depuis la
+            galerie
           </button>
-          <h3 className="text-lg font-bold mb-6">Partager un média</h3>
-          <div className="space-y-4">
-            <button
-              onClick={() => openCamera(cameraMode)}
-              className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              type="button"
-            >
-              <Video className="mr-3 text-red-500" /> Prendre une photo ou une vidéo
-            </button>
-            <button
-              onClick={() => galleryInputRef.current?.click()}
-              className="w-full flex items-center justify-center p-4 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              type="button"
-            >
-              <ImageIcon className="mr-3 text-blue-500" /> Choisir depuis la galerie
-            </button>
-          </div>
-          <input
-            type="file"
-            accept="image/*,video/*"
-            ref={galleryInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
         </div>
-      )}
+        {/* Input caché pour la galerie seulement */}
+        <input
+          type="file"
+          accept="image/*,video/*"
+          ref={galleryInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+      </div>
     </div>
   );
 };

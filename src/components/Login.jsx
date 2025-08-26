@@ -1,3 +1,5 @@
+// src/components/Login.jsx
+
 import { useState } from 'react';
 import { LogIn, X } from 'lucide-react';
 import { createUserIfNeeded } from '../utils/firebaseUtils';
@@ -19,6 +21,7 @@ const TermsModal = ({ onClose }) => (
       </div>
 
       <div className="p-4 md:p-6 overflow-y-auto space-y-4">
+        {/* ... Le contenu des termes et conditions reste identique ... */}
         <h3 className="font-semibold text-gray-700 text-base md:text-lg">1. Acceptance of Terms</h3>
         <p className="text-gray-600 text-xs md:text-sm">
           By accessing and using Gold Connect (the "Service"), you agree to be bound by these Terms and Conditions. If you do not agree with any part of the terms, you may not access the Service.
@@ -124,16 +127,26 @@ const Login = ({ setUser }) => {
     setError('');
 
     try {
-      // Récupérer les informations de pays de l'utilisateur
+      // 1. Récupérer les informations de pays grâce à notre nouvel utilitaire fiable
       const countryInfo = await getUserCountryInfo();
       
-      // Créer l'utilisateur avec les informations de pays
+      // 2. Créer l'utilisateur dans Firestore avec les informations de pays
+      // La fonction createUserIfNeeded doit être capable de recevoir cet objet
       await createUserIfNeeded(pseudo, countryInfo);
+      
+      // =================================================================
+      // DÉBUT DE LA MODIFICATION
+      // =================================================================
+      // 3. Mettre à jour l'état local de l'utilisateur avec les bons noms de variables
       setUser({ 
-        pseudo, 
-        countryCode: countryInfo.country_code,
+        pseudo: pseudo, 
+        countryCode: countryInfo.countryCode, // CORRIGÉ : Utilisation de countryCode (camelCase)
         country: countryInfo.country 
       });
+      // =================================================================
+      // FIN DE LA MODIFICATION
+      // =================================================================
+
     } catch (error) {
       console.error('Erreur de connexion:', error);
       setError('Erreur lors de la connexion');
